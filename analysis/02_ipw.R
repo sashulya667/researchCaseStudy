@@ -332,6 +332,21 @@ msg("\nBalance — Dataset_B (GROUPED):"); print(balance_B_grp)
 msg("\nBalance — Dataset_E (ROW):"); print(balance_E_row)
 msg("\nBalance — Dataset_E (GROUPED):"); print(balance_E_grp)
 
+# show more digits in console prints
+options(pillar.sigfig = 12)
+
+msg("\nAROP table (high precision):")
+print(arop_all, n = Inf)
+
+msg("\nAROP with explicit formatting (so rounding can't hide differences):")
+arop_all_fmt <- arop_all %>%
+  mutate(
+    median = sprintf("%.6f", median),
+    poverty_line = sprintf("%.6f", poverty_line),
+    arop = sprintf("%.10f", arop)
+  )
+print(arop_all_fmt, n = Inf)
+
 # ============================================================
 # Save outputs
 # ============================================================

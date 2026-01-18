@@ -97,7 +97,7 @@ ipw_mean <- function(y, w_norm) {
 
 ipw_cdf_at <- function(y, w_norm, t) {
   y <- as.numeric(y)
-  ind <- as.numeric(y <= t)
+  ind <- as.numeric(y < t)
   wmean_safe(ind, w_norm)
 }
 
@@ -135,7 +135,7 @@ fit_outcome_logit_cdf_np <- function(nonprob_df, y_var, rhs_x, t) {
   assert_required_cols(nonprob_df, c(y_var), "fit_outcome_logit_cdf_np")
   rhs <- paste(deparse(rhs_x[[2]]), collapse = "")
   nonprob_df2 <- nonprob_df
-  nonprob_df2[[".__I__"]] <- as.integer(as.numeric(nonprob_df2[[y_var]]) <= t)
+  nonprob_df2[[".__I__"]] <- as.integer(as.numeric(nonprob_df2[[y_var]]) < t)
   f <- stats::as.formula(paste0(".__I__ ~ ", rhs))
   stats::glm(f, data = nonprob_df2, family = stats::binomial())
 }
@@ -221,7 +221,7 @@ dr_cdf_grid <- function(nonprob_df,
 
     # DR CDF
     F_or   <- wmean_safe(mt_ref, ref_df[[ref_weight_var]])
-    ind_np <- as.numeric(y_np <= t)
+    ind_np <- as.numeric(y_np < t)
     F_corr <- wmean_safe(ind_np - mt_np, w_np_norm)
     F_dr   <- F_or + F_corr
 

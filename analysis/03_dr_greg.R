@@ -28,7 +28,7 @@ RHS_X <- ~ REG + UEP + DOU
 RHS_Y <- ~ REG + UEP + DOU
 
 # CDF grid controls
-N_GRID <- 121  # number of thresholds for DR CDF grid
+N_GRID <- 401  # number of thresholds for DR CDF grid
 GRID_TRIM_Q <- c(0.01, 0.99)  # build grid from these quantiles of Y
 
 SAVE_PLOTS <- TRUE
@@ -204,9 +204,21 @@ tbl_ipw_arop <- bind_rows(res_B$ipw_arop, res_E$ipw_arop)
 tbl_dr_mean  <- bind_rows(res_B$dr_mean,  res_E$dr_mean)
 tbl_dr_arop  <- bind_rows(res_B$dr_arop,  res_E$dr_arop)
 
+options(pillar.sigfig = 12)
+print(tbl_ipw_arop, n = Inf)
+print(tbl_dr_arop, n = Inf)
+tbl_dr_arop_fmt <- tbl_dr_arop %>%
+  mutate(
+    median = sprintf("%.6f", median),
+    poverty_line = sprintf("%.6f", poverty_line),
+    arop = sprintf("%.10f", arop)
+  )
+print(tbl_dr_arop_fmt, n = Inf)
+
 msg("\nIPW AROP (baseline):"); print(tbl_ipw_arop)
 msg("\nDR mean (reporting):"); print(tbl_dr_mean)
 msg("\nAROP via CDF (IPW_CDF vs DR_CDF):"); print(tbl_dr_arop)
+
 
 # ============================================================
 # Save outputs
@@ -230,3 +242,45 @@ if (isTRUE(SAVE_PLOTS)) {
 
 msg("\nSaved outputs to: ", OUT_DIR)
 
+
+# ----------------------------------------------------------
+
+# ============================================================
+# Reference (REF) estimate: design-weighted median and AROP
+# ============================================================
+
+weighted_quantile <- function(x, w, p = 0.5) {
+  ok <- is.finite(x) & is.finite(w) & !is.na(x) & !is.na(w) & (w > 0)
+  x <- x[ok]; w <- w[ok]
+  o <- order(x)
+  x <- x[o]; w <- w[o]
+  cw <- cumsum(w) / sum(w)
+  # smallest x with cumulative weight >= p
+  x[min(which(cw >= p))]
+}
+
+ref_arop <- function(ref_df, y_var = "EDI", w_var = "design_weight", poverty_frac = 0.6) {
+  y <- ref_df[[y_var]]
+  w <- ref_df[[w_var]]
+
+  m <- weighted_quantile(y, w, p = 0.5)
+  z <- poverty_frac * m
+
+  ok <- is.finite(y) & is.finite(w) & !is.na(y) & !is.na(w) & (w > 0)
+  arop <- sum(w[ok] * (y[ok] < z)) / sum(w[ok])
+
+  tibble(
+    dataset = "--",
+    method = "Reference (REF)",
+    weighting = "design weights",
+    median = m,
+    poverty_line = z,
+    arop = arop
+  )
+}
+
+ref_tbl <- ref_arop(ref, y_var = INCOME_VAR, w_var = "design_weight", poverty_frac = POVERTY_FRAC)
+
+options(pillar.sigfig = 12)
+msg("\nReference (design-weighted) AROP:")
+print(ref_tbl, n = Inf)
